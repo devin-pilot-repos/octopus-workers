@@ -1,0 +1,131 @@
+global:
+  name: "#{Octopus.Action[Update worker image variables].Output.ReleaseName}"
+  nameOverride: "#{Octopus.Action[Update worker image variables].Output.ReleaseName}"
+  replicaCount: "#{Octopus.Action[Update worker image variables].Output.Replicas}"
+
+  image:
+    repository: #{Octopus.Action[Update worker image variables].Output.WorkerImageRepository}
+    tag: #{Octopus.Action[Update worker image variables].Output.WorkerImageTag}
+
+  labels:
+    applicationType: "#{Meta-ApplicationType}"
+    applicationFacing: "#{Meta-ApplicationFacing}"
+    applicationStack: "#{Meta-ApplicationStack}"
+    costCenter: "#{Meta-CostCenter}"
+    technicalOwner: "#{Meta-TechnicalOwner}"
+    environment: "#{Octopus.Environment.Name}"
+    tribeName: "#{Meta-Tribe}"
+    squadName: "#{Meta-SquadId}"
+    clustername: "#{Meta-Cluster}"
+
+  lifecycle:
+    preStopCommand: ["/scripts/deregister-tentacle.sh"]
+
+  livenessProbe:
+    exec:
+      command:
+        - /bin/true
+    initialDelaySeconds: 30
+    failureThreshold: 5
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 5
+
+  readinessProbe:
+    exec:
+      command:
+        - /bin/true
+    initialDelaySeconds: 15
+    failureThreshold: 5
+    periodSeconds: 15
+    successThreshold: 1
+    timeoutSeconds: 5
+
+  podSecurityContext:
+    runAsNonRoot: true
+    fsGroup: 1001
+    runAsUser: 1001
+
+  securityContext:
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+  updateStrategy:
+    type: RollingUpdate ## vs. Recreate
+
+  autoscaling:
+    enabled: false
+
+  # do not specify if there is only one pod!!!!
+  # podDisruptionBudget:
+  #   minAvailable: 1
+
+  imagePullSecrets:
+    - name: #{ImagePullSecret}
+
+  terminationGracePeriodSeconds: 30
+
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations:
+      "eks.amazonaws.com/role-arn": "arn:aws:iam::redacted:role/smp/tooling/k8s-octopus-services-role-tooling"
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
+    automountServiceAccountToken: true
+
+  secrets:
+    create: true
+    provider:
+      aws:
+        service: SecretsManager
+        region: eu-central-1
+    refreshInterval: 1m
+    creationPolicy: Owner
+    data:
+      - key: "#{AWS-WorkerSecret-Name}"
+        secretKey: "ServerApiKey"
+        property: "ServerApiKey"
+
+  configmap:
+    "ServerUrl": "#{ServerUrl-for-worker}"
+    "ACCEPT_EULA": "Y"
+    "TargetWorkerPool": "#{workerpool-name}"
+    "ServerPort": "10943"
+    "Space": "#{Space | ToLower}"
+    "MachinePolicy": "#{MachinePolicy}"
+    "WorkerSize": "#{WorkerSize}"
+
+  service:
+    enabled: false
+
+  ingress:
+    enabled: false
+
+  resources:
+    limits:
+      cpu: "#{Octopus.Action[Update worker image variables].Output.ResourceCpuLimit}"
+      memory: "#{Octopus.Action[Update worker image variables].Output.ResourceMemoryLimit}"
+    requests:
+      cpu: "#{Octopus.Action[Update worker image variables].Output.ResourceCpuRequest}"
+      memory: "#{Octopus.Action[Update worker image variables].Output.ResourceMemoryRequest}"
+
+  nodeSelector:
+    dedicated: "#{Node-Selector | ToLower}"
+    kubernetes.io/os: linux
+
+  tolerations:
+    - effect: NoSchedule
+      key: dedicated
+      operator: Equal
+      value: #{Node-Selector}
+    - effect: PreferNoSchedule
+      key: dedicated
+      operator: Equal
+      value: #{Node-Selector}
+
+  affinity: {}

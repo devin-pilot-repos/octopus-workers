@@ -1,0 +1,93 @@
+name: Build and publish dso-helm-python3-ps7-worker
+
+on:
+  # push:
+  #   branches: [TCDD-3579-upgrade]
+  pull_request:
+    branches: [main]
+    paths:
+      - "helm-python3-ps7-worker/**"
+      - ".github/workflows/build_helm-python3-ps7-worker.yml"
+  workflow_dispatch:
+    inputs:
+      baseimage_version:
+        description: DSO Base Image Version
+        default: "88"
+      kubectl_version:
+        description: Kubectl Version
+        default: v1.32.2
+        required: true
+      helm_version:
+        description: Helm Version
+        default: v3.17.0
+
+env:
+  SERVICE_NAME: dso-helm-python3-ps7-worker # Replace with your api name (same as chart name)
+
+  # Azure key vault secrets (Change as per org)
+  AKV_SECRET: ${{ secrets.AKV_DSO_SECRET }}
+  AKV_VAULT_NAME: ${{ secrets.AKV_VAULT_NAME }}
+
+  DOCKER_REGISTRY: sample-artifactory.jfrog.io
+  DOCKER_DIR: helm-python3-ps7-worker
+  IMAGE_NAME: sample-artifactory.jfrog.io/dso-docker-virtual/${SERVICE_NAME} # Replace with respository name and docker image
+
+  BASEIMAGE_VERSION: ${{ github.event.inputs.baseimage_version || '88' }}
+  KUBERNETES_VERSION: ${{ github.event.inputs.kubectl_version || 'v1.32.2' }}
+  HELM_VERSION: ${{ github.event.inputs.helm_version || 'v3.17.0' }}
+  IMAGE_TAG: ${BASEIMAGE_VERSION}-${KUBERNETES_VERSION}-${HELM_VERSION}-${{ github.run_number }}
+
+jobs:
+  build:
+    name: Build and publish docker image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login To Azure Vault
+        uses: .github/github-action-composite-actions/AzureVaultLoginV2@main
+        with:
+          azure_secret: ${{ env.AKV_SECRET }} 
+
+      - name: Get secrets from Azure Vault
+        uses: .github/github-action-composite-actions/WorkflowSecretsV2@main
+        with:
+          vault_name: ${{ env.AKV_VAULT_NAME }} 
+          variable_to_key_mapping: |
+            DOCKER-USERNAME = EP-ROVER-DOCKER-USERNAME
+            DOCKER-PASSWORD = EP-ROVER-DOCKER-PASSWORD 
+            PRISMA-CLOUD-ACCESSKEY = PRISMA-CLOUD-ACCESSKEY
+            PRISMA-CLOUD-SECRETKEY = PRISMA-CLOUD-SECRETKEY
+            PRISMA-CLOUD-CONSOLE-URL = PRISMA-CLOUD-CONSOLE-URL
+
+      # Build the docker image and extract code for veracode scanning
+      - name: docker-build
+        run: |
+          cd ${{ github.workspace }}/${{ env.DOCKER_DIR }}
+          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ env.DOCKER-USERNAME }} -p ${{ env.DOCKER-PASSWORD }}  
+          docker build --build-arg BASEIMAGE_VERSION=${{ env.BASEIMAGE_VERSION }} --build-arg Kubectl_Version=${{ env.KUBERNETES_VERSION }} --build-arg Helm_Version=${{ env.HELM_VERSION }} -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+
+      # Download Twistlock cli
+      - name: download-twistcli
+        run: |
+          curl --user ${{ env.PRISMA-CLOUD-ACCESSKEY }}:${{ env.PRISMA-CLOUD-SECRETKEY }} --output ${{ github.workspace }}/twistcli ${{ env.PRISMA-CLOUD-CONSOLE-URL }}/api/v1/util/twistcli
+          chmod a+x ${{ github.workspace }}/twistcli
+
+      # Scan the image
+      - name: scan-image
+        continue-on-error: true
+        run: ${{ github.workspace }}/twistcli images scan --publish --details --output-file scan-results.json --address ${{ env.PRISMA-CLOUD-CONSOLE-URL }} --user ${{ env.PRISMA-CLOUD-ACCESSKEY }} --password ${{ env.PRISMA-CLOUD-SECRETKEY }} ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      # Upload image scan json
+      - name: upload-scan-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ github.workspace }}/scan-results.json
+
+      # Push the docker image to JFrog Artifactory
+      - name: docker-push
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          docker login ${{ env.DOCKER_REGISTRY }} -u ${{ env.DOCKER-USERNAME }} -p ${{ env.DOCKER-PASSWORD }}  
+          docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} 
+          echo "::notice::published ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"

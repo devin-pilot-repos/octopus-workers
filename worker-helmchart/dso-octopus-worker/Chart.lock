@@ -1,0 +1,6 @@
+dependencies:
+- name: smp-base-chart
+  repository: https://sample-artifactory.jfrog.io/artifactory/global-helm-local
+  version: 0.1.29
+digest: sha256:89565d3d6ee6f610552199ccd94adb0fd7ef3f29fd531fcaf71202adc9d13893
+generated: "2023-08-07T16:56:40.4580658+02:00"

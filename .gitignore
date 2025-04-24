@@ -1,0 +1,4 @@
+.env
+DockerfileTest
+**/charts/
+process-test.ps1

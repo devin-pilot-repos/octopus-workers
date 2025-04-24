@@ -1,0 +1,83 @@
+name: Build Helm Chart for the Worker Deployment
+
+on:
+  push:
+    branches: [ "TCDD-3107-globalhelm" ]
+  
+  workflow_dispatch:
+
+env:    
+  # Helm variables
+  helm_repo_url: https://sample-artifactory.jfrog.io/artifactory/dso-helm # Replace with helm repository name
+  helm_version: 'v3.4.0'
+  helm_push_plugin_version: 1.0.1
+  helm_chart_name: dso-octopus-worker
+  helm_chart_dir: "worker-helmchart/dso-octopus-worker"
+  vault_name: ${{ secrets.AKV_VAULT_NAME }}
+
+jobs:
+  helm-chart:
+    name: Build and push Helmchart
+    runs-on: ubuntu-latest
+
+    outputs:
+      VERSION_NUM: ${{ steps.set-version.outputs.VERSION_NUM }}
+      CHANNEL_NAME: ${{ steps.set-version.outputs.CHANNEL_NAME }}
+    steps:
+    - name: Checkout Code
+      uses: .github/github-action-composite-actions/CheckoutV2@main
+      with:
+        branch: '${{ inputs.branch }}'
+
+    - name: Login To Azure Vault
+      uses: .github/github-action-composite-actions/AzureVaultLoginV2@main
+      with:
+        azure_secret: ${{ secrets.AKV_DSO_SECRET }}
+
+    - name: Fetch Azure Secrets 
+      uses: azure/CLI@v2
+      with:
+        azcliversion: latest
+        inlineScript: |
+          helmusername=$(az keyvault secret show --vault-name ${{ env.vault_name }} --name EP-ROVER-HELM-USERNAME --query value)
+          helmpassword=$(az keyvault secret show --vault-name ${{ env.vault_name }} --name EP-ROVER-HELM-PASSWORD --query value)
+          echo "::add-mask::$helmusername"
+          echo "::add-mask::$helmpassword"
+          eval "echo HelmUserName=$helmusername >> $GITHUB_ENV"
+          eval "echo HelmPassword=$helmpassword >> $GITHUB_ENV"
+
+    # Get the current branch name
+    - name: get-current-branch-name
+      run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+      id: branch_name
+    
+    # Set the version based on branch name
+    - name: set-version
+      id: set-version
+      run: |
+        if [ "${{ steps.branch_name.outputs.BRANCH }}" == "main" ]; then
+            echo "Branch is main"
+            version=0.0.${{ github.run_number }}
+            channel=release
+        else
+            echo "Branch is non main or no build.version"
+            version=0.0.${{ github.run_number }}-${{ steps.branch_name.outputs.BRANCH }}
+            channel=pre-release
+        fi
+        echo "Version is $version"
+        echo "Channel is $channel"
+        echo "VERSION_NUM=$version" >> $GITHUB_OUTPUT
+        echo "CHANNEL_NAME=$channel" >> $GITHUB_OUTPUT
+
+    - name: Helm Build Push
+      uses: .github/github-action-composite-actions/HelmBuildPushV2@main
+      with:
+        helm_version: ${{ env.helm_version }}
+        helm_push_plugin_version: ${{ env.helm_push_plugin_version }}
+        helm_repo_url: ${{ env.helm_repo_url }}
+        helm_global_chart_enabled: true
+        helm_chart_name: ${{ env.helm_chart_name }}
+        helm_chart_dir: ${{ env.helm_chart_dir }}
+        helm_user_name: ${{ env.HelmUserName }}
+        helm_password: ${{ env.HelmPassword }}
+        version: ${{ steps.set-version.outputs.VERSION_NUM }}
