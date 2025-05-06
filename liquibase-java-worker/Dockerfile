@@ -21,13 +21,13 @@ USER root
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get upgrade -y && \
-    apt-get -yqq install krb5-user libpam-krb5 jq gnupg wget openjdk-17-jre --no-install-recommends && \
+    apt-get -yqq install krb5-user libpam-krb5 jq gnupg openjdk-17-jre --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and install Liquibase
 WORKDIR /liquibase
 
-RUN wget -q -O liquibase-${LIQUIBASE_VERSION}.tar.gz "https://github.com/liquibase/liquibase/releases/download/v${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}.tar.gz" && \
+RUN curl -s -L -o liquibase-${LIQUIBASE_VERSION}.tar.gz "https://github.com/liquibase/liquibase/releases/download/v${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}.tar.gz" && \
     echo "$LB_SHA256 liquibase-${LIQUIBASE_VERSION}.tar.gz" | sha256sum -c - && \
     tar -xzf liquibase-${LIQUIBASE_VERSION}.tar.gz && \
     rm -rf liquibase-${LIQUIBASE_VERSION}.tar.gz
@@ -37,13 +37,12 @@ RUN mkdir bin && \
     case ${TARGETARCH} in \
     "amd64")  DOWNLOAD_ARCH=""  ;; \
     "arm64")  DOWNLOAD_ARCH="-arm64"  ;; \
-    esac &&  wget -v -O lpm.zip "https://github.com/liquibase/liquibase-package-manager/releases/download/v${LPM_VERSION}/lpm-${LPM_VERSION}-linux${DOWNLOAD_ARCH}.zip" && \
+    esac &&  curl -L -o lpm.zip "https://github.com/liquibase/liquibase-package-manager/releases/download/v${LPM_VERSION}/lpm-${LPM_VERSION}-linux${DOWNLOAD_ARCH}.zip" && \
     echo "$LPM_SHA256 lpm.zip" | sha256sum -c - && \
     unzip lpm.zip -d bin/ && \
     rm lpm.zip
 
-RUN apt-get remove -y curl wget && \
-    apt-get clean
+RUN apt-get clean
 
 # Setup symbolic links
 RUN ln -s /liquibase/liquibase /usr/local/bin/liquibase && \
