@@ -4,7 +4,7 @@
 # - add Powershell and Az module
 
 ARG BASEIMAGE_VERSION=latest
-FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:latest
+FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 #test locally on mac using below image
 # FROM --platform=linux/amd64 ubuntu:20.04
 

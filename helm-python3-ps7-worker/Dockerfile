@@ -4,7 +4,7 @@
 # - add Powershell and Az module
 
 ARG BASEIMAGE_VERSION=latest
-FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:latest
+FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 
 # specify the versions of tools to install, override via --build-arg
 ARG Kubectl_Version=v1.32.4
@@ -70,4 +70,4 @@ RUN export PYENV_ROOT="$HOME/.pyenv" && \
     export PATH="$PYENV_ROOT/bin:$PATH" && \
     eval "$(pyenv init -)" && \
     pyenv install 3.12 && \
-    pyenv global 3.12            
+    pyenv global 3.12              
