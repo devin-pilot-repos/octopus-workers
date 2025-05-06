@@ -8,7 +8,7 @@ FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:latest
 #test locally on mac using below image
 #FROM --platform=linux/amd64 ubuntu:20.04
 
-ARG cf_Version=8.8.4
+ARG cf_Version=8.8.3
 
 USER root
 

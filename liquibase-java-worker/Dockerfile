@@ -9,8 +9,8 @@ FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:latest
 # FROM --platform=linux/amd64 ubuntu:20.04
 
 ARG TARGETARCH=amd64
-ARG LIQUIBASE_VERSION=4.32.0
-ARG LB_SHA256=df4de9c34d9ed5045b11159b1721352b1fe8ea3d0d4bf5bd4ba6c1273cd61dbb
+ARG LIQUIBASE_VERSION=4.31.1
+ARG LB_SHA256=ffcf80c34c8b05a50c32c423ad2899aa9e7a5cd40097628f2bc739b70654962d
 
 ARG LPM_VERSION=0.2.9
 ARG LPM_SHA256=1ee4e4122d68102e63dfeb63864ceb4ad3b4ad6a8042e30d2f26eeb34bded5f7
