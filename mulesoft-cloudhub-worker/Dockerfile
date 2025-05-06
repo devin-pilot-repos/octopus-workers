@@ -3,11 +3,11 @@
 # - add the more packages for SMP Kong script (python3, pip) to the image
 # - add Powershell and Az module
 
-ARG BASEIMAGE_VERSION
+ARG BASEIMAGE_VERSION=latest
 FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 
 # specify the versions of tools to install, override via --build-arg
-ARG Nodejs_Version=18.x
+ARG Nodejs_Version=20.x
 ARG AnyPointCLI_Version=latest
 
 USER root
@@ -16,6 +16,7 @@ WORKDIR /tmp
 
 # Install prerequisites, git is needed for anysoft-cli package
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y jq git python3-pip python3-openssl && \
     pip install --upgrade pip && \
     pip install cryptography==43.0.1 && \

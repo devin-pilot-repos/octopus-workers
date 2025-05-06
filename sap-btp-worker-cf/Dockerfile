@@ -3,18 +3,18 @@
 # - add the more packages for SMP Kong script (python3, pip) to the image
 # - add Powershell and Az module
 
-ARG BASEIMAGE_VERSION
+ARG BASEIMAGE_VERSION=latest
 FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 #test locally on mac using below image
 #FROM --platform=linux/amd64 ubuntu:20.04
 
-ARG cf_Version=8.8.3
+ARG cf_Version=8.13.0
 
 USER root
 
 RUN apt-get update && \
-    apt upgrade -y && \
-    apt-get install -y wget curl && \
+    apt-get upgrade -y && \
+    apt-get install -y curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +22,7 @@ WORKDIR /tmp
 
 # Download and extract the Cloud Foundry CLI package
 # list of releases https://github.com/cloudfoundry/cli/releases
-RUN wget -O /tmp/cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=${cf_Version}" && \
+RUN curl -L -o /tmp/cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=${cf_Version}" && \
     tar -xzf /tmp/cf.tgz -C /tmp && \
     mv /tmp/* /usr/local/bin/ 
 #   rm /usr/local/bin/cf.tgz
