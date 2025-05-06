@@ -9,17 +9,18 @@ FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_
 # FROM --platform=linux/amd64 ubuntu:20.04
 
 ARG TARGETARCH=amd64
-ARG LIQUIBASE_VERSION=4.31.0
-ARG LB_SHA256=ffcf80c34c8b05a50c32c423ad2899aa9e7a5cd40097628f2bc739b70654962d
+ARG LIQUIBASE_VERSION=4.32.0
+ARG LB_SHA256=df4de9c34d9ed5045b11159b1721352b1fe8ea3d0d4bf5bd4ba6c1273cd61dbb
 
-ARG LPM_VERSION=0.2.8
-ARG LPM_SHA256=ad46e7f0ca67e39ddbf1435c0bd2879be8a43340c7b627a2da45c07787574200
+ARG LPM_VERSION=0.2.9
+ARG LPM_SHA256=1ee4e4122d68102e63dfeb63864ceb4ad3b4ad6a8042e30d2f26eeb34bded5f7
 
 USER root
 
 # Install necessary dependencies
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
+    apt-get upgrade -y && \
     apt-get -yqq install krb5-user libpam-krb5 jq gnupg wget openjdk-17-jre --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 

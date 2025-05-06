@@ -8,12 +8,12 @@ FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_
 #test locally on mac using below image
 #FROM --platform=linux/amd64 ubuntu:20.04
 
-ARG cf_Version=8.8.3
+ARG cf_Version=8.8.4
 
 USER root
 
 RUN apt-get update && \
-    apt upgrade -y && \
+    apt-get upgrade -y && \
     apt-get install -y wget curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
