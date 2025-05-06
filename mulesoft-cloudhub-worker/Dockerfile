@@ -3,8 +3,8 @@
 # - add the more packages for SMP Kong script (python3, pip) to the image
 # - add Powershell and Az module
 
-ARG BASEIMAGE_VERSION
-FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
+ARG BASEIMAGE_VERSION=latest
+FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:latest
 
 # specify the versions of tools to install, override via --build-arg
 ARG Nodejs_Version=20.x

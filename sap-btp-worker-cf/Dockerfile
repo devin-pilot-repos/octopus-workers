@@ -3,8 +3,8 @@
 # - add the more packages for SMP Kong script (python3, pip) to the image
 # - add Powershell and Az module
 
-ARG BASEIMAGE_VERSION
-FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
+ARG BASEIMAGE_VERSION=latest
+FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:latest
 #test locally on mac using below image
 #FROM --platform=linux/amd64 ubuntu:20.04
 
