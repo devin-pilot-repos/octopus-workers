@@ -5,7 +5,7 @@ ENV DISABLE_DIND=Y
 
 
 RUN apt-get update && \
-    apt upgrade -y && \
+    apt-get upgrade -y && \
     apt-get install -y curl git unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -18,7 +18,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install --update
 
 # https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux?view=powershell-7.2#debian
-RUN curl https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb --output packages-microsoft-prod.deb && \
+RUN curl https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb --output packages-microsoft-prod.deb && \
     dpkg -i packages-microsoft-prod.deb && \
     apt-get update && \
     apt-get install -y powershell && \
@@ -27,7 +27,7 @@ RUN curl https://packages.microsoft.com/config/debian/10/packages-microsoft-prod
 
 # Get AZ Powershell modules
 # https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-3.6.1
-RUN pwsh -c 'Install-Module -Name Az.Keyvault -Repository PSGallery -Force -Scope AllUsers' && \
+RUN pwsh -c 'Install-Module -Name Az.Keyvault -Repository PSGallery -Force -Scope AllUsers -MaximumVersion 4.9.0' && \
     pwsh -c 'Disable-AzDataCollection'
 
 COPY docker/linux/scripts/* /scripts/
