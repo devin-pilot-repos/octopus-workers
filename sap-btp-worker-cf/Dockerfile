@@ -13,7 +13,7 @@ ARG cf_Version=8.8.3
 USER root
 
 RUN apt-get update && \
-    apt upgrade -y && \
+    apt-get upgrade -y && \
     apt-get install -y wget curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -24,7 +24,9 @@ WORKDIR /tmp
 # list of releases https://github.com/cloudfoundry/cli/releases
 RUN wget -O /tmp/cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=${cf_Version}" && \
     tar -xzf /tmp/cf.tgz -C /tmp && \
-    mv /tmp/* /usr/local/bin/ 
+    mv /tmp/cf8 /usr/local/bin/ && \
+    ln -sf /usr/local/bin/cf8 /usr/local/bin/cf && \
+    chmod +x /usr/local/bin/cf8
 #   rm /usr/local/bin/cf.tgz
 
 WORKDIR /
