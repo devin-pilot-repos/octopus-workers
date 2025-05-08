@@ -7,7 +7,7 @@ ARG BASEIMAGE_VERSION
 FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 
 # specify the versions of tools to install, override via --build-arg
-ARG Nodejs_Version=18.x
+ARG Nodejs_Version=20.x
 ARG AnyPointCLI_Version=latest
 
 USER root
@@ -18,9 +18,9 @@ WORKDIR /tmp
 RUN apt-get update && \
     apt-get install -y jq git python3-pip python3-openssl && \
     pip install --upgrade pip && \
-    pip install cryptography==43.0.1 && \
+    pip install cryptography==44.0.3 && \
     pip install setuptools==75.1.0 && \
-    pip install packaging==24.1 && \
+    pip install packaging==25.0 && \
     pip install wheel==0.44.0 && \
     pip install pyopenssl==24.2.1
     
