@@ -1,12 +1,12 @@
-FROM octopusdeploy/tentacle:latest
+FROM octopusdeploy/tentacle:8.3.2915
 
 # disable docker in docker since it would require privileged mode
 ENV DISABLE_DIND=Y
 
 
 RUN apt-get update && \
-    apt upgrade -y && \
-    apt-get install -y curl git unzip && \
+    apt-get upgrade -y && \
+    apt-get install -y curl git unzip ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
     
@@ -38,7 +38,7 @@ WORKDIR /
 RUN rm -rf /tmp/*
 
 # for argocd: we need a python3 symlink
-RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN if [ ! -e /usr/bin/python ]; then ln -s /usr/bin/python3 /usr/bin/python; fi
 
 # Add a user 'Octopus' with the userId that owns the tentacle files in /opt/octopus/tentacle
 # while the original docker runs as root, we change it to dedicated user
