@@ -8,7 +8,7 @@ FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_
 #test locally on mac using below image
 #FROM --platform=linux/amd64 ubuntu:20.04
 
-ARG cf_Version=8.8.3
+ARG cf_Version=8.13.0
 
 USER root
 
@@ -22,7 +22,7 @@ WORKDIR /tmp
 
 # Download and extract the Cloud Foundry CLI package
 # list of releases https://github.com/cloudfoundry/cli/releases
-RUN wget -O /tmp/cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=${cf_Version}" && \
+RUN curl -L -o /tmp/cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=${cf_Version}" && \
     tar -xzf /tmp/cf.tgz -C /tmp && \
     mv /tmp/* /usr/local/bin/ 
 #   rm /usr/local/bin/cf.tgz
