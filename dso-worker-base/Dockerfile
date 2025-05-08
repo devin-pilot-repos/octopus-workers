@@ -1,4 +1,4 @@
-FROM octopusdeploy/tentacle:latest
+FROM octopusdeploy/tentacle:6.3.0
 
 # disable docker in docker since it would require privileged mode
 ENV DISABLE_DIND=Y
@@ -17,8 +17,8 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     unzip awscliv2.zip && \
     ./aws/install --update
 
-# https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux?view=powershell-7.2#debian
-RUN curl https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb --output packages-microsoft-prod.deb && \
+# https://learn.microsoft.com/en-us/powershell/scripting/install/install-debian?view=powershell-7.4
+RUN curl https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb --output packages-microsoft-prod.deb && \
     dpkg -i packages-microsoft-prod.deb && \
     apt-get update && \
     apt-get install -y powershell && \
@@ -26,8 +26,8 @@ RUN curl https://packages.microsoft.com/config/debian/10/packages-microsoft-prod
     pwsh --version
 
 # Get AZ Powershell modules
-# https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-3.6.1
-RUN pwsh -c 'Install-Module -Name Az.Keyvault -Repository PSGallery -Force -Scope AllUsers' && \
+# https://learn.microsoft.com/en-us/powershell/azure/install-az-ps
+RUN pwsh -c 'Install-Module -Name Az -Repository PSGallery -Force -Scope AllUsers -MinimumVersion 11.0.0' && \
     pwsh -c 'Disable-AzDataCollection'
 
 COPY docker/linux/scripts/* /scripts/

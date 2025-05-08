@@ -25,7 +25,7 @@ env:
   DOCKER_DIR: sap-btp-worker-cf
   IMAGE_NAME: sample-artifactory.jfrog.io/dso-docker-virtual/${SERVICE_NAME} # Replace with respository name and docker image
 
-  BASEIMAGE_VERSION: ${{ github.event.inputs.baseimage_version || '88' }}
+  BASEIMAGE_VERSION: ${{ github.event.inputs.baseimage_version || '100' }}
   IMAGE_TAG: ${BASEIMAGE_VERSION}-${{ github.run_number }}
 
 jobs:
