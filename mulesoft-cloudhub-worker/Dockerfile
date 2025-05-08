@@ -7,7 +7,7 @@ ARG BASEIMAGE_VERSION
 FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 
 # specify the versions of tools to install, override via --build-arg
-ARG Nodejs_Version=18.x
+ARG Nodejs_Version=20.x
 ARG AnyPointCLI_Version=latest
 
 USER root
@@ -16,7 +16,8 @@ WORKDIR /tmp
 
 # Install prerequisites, git is needed for anysoft-cli package
 RUN apt-get update && \
-    apt-get install -y jq git python3-pip python3-openssl && \
+    apt-get upgrade -y && \
+    apt-get install -y jq git python3-pip python3-openssl curl && \
     pip install --upgrade pip && \
     pip install cryptography==43.0.1 && \
     pip install setuptools==75.1.0 && \

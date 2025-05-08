@@ -7,9 +7,9 @@ ARG BASEIMAGE_VERSION
 FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_VERSION}
 
 # specify the versions of tools to install, override via --build-arg
-ARG Kubectl_Version=v1.32.2
-ARG Helm_Version=v3.17.0
-ARG SOPS_VERSION=v3.9.3
+ARG Kubectl_Version=v1.31.0
+ARG Helm_Version=v3.17.3
+ARG SOPS_VERSION=v3.10.2
 
 USER root
 
@@ -69,4 +69,4 @@ RUN export PYENV_ROOT="$HOME/.pyenv" && \
     export PATH="$PYENV_ROOT/bin:$PATH" && \
     eval "$(pyenv init -)" && \
     pyenv install 3.12 && \
-    pyenv global 3.12 
+    pyenv global 3.12        
