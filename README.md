@@ -9,3 +9,12 @@ The base image for all custom workers below. Provides the octopus tentacle and e
 
 The default worker suitable for most use cases
 
+## GitHub Organization Members Report
+
+A GitHub workflow that:
+- Queries all active members in the devin-pilot-repos organization
+- Creates a CSV report with GitHub account IDs, emails, and last activity dates
+- Pushes the CSV data to a Tableau dashboard
+
+The workflow runs weekly and can also be triggered manually.
+

@@ -1,0 +1,233 @@
+name: GitHub Organization Members Report
+
+on:
+  # Run on a schedule (weekly on Monday at 00:00 UTC)
+  schedule:
+    - cron: '0 0 * * 1'
+  # Allow manual triggering
+  workflow_dispatch:
+
+env:
+  # GitHub organization to query
+  GITHUB_ORG: devin-pilot-repos
+  
+  # Azure key vault secrets (Change as per org)
+  AKV_SECRET: ${{ secrets.AKV_DSO_SECRET }}
+  AKV_VAULT_NAME: ${{ secrets.AKV_VAULT_NAME }}
+  
+  # Output file names
+  CSV_FILENAME: github-members-report.csv
+  
+  # Tableau variables
+  TABLEAU_SERVER_URL: ${{ secrets.TABLEAU_SERVER_URL }}
+  TABLEAU_SITE_ID: ${{ secrets.TABLEAU_SITE_ID }}
+  TABLEAU_PROJECT_NAME: ${{ secrets.TABLEAU_PROJECT_NAME }}
+  TABLEAU_DATASOURCE_NAME: GitHub_Members_Report
+
+jobs:
+  generate-report:
+    name: Generate GitHub Members Report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas tableauserverclient
+      
+      - name: Login To Azure Vault
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Get secrets from Azure Vault
+        run: |
+          # Get GitHub token
+          GITHUB_TOKEN=$(az keyvault secret show --vault-name ${{ env.AKV_VAULT_NAME }} --name GITHUB-TOKEN --query value -o tsv)
+          echo "GITHUB_TOKEN=$GITHUB_TOKEN" >> $GITHUB_ENV
+          
+          # Get Tableau credentials
+          TABLEAU_USERNAME=$(az keyvault secret show --vault-name ${{ env.AKV_VAULT_NAME }} --name TABLEAU-USERNAME --query value -o tsv)
+          TABLEAU_PASSWORD=$(az keyvault secret show --vault-name ${{ env.AKV_VAULT_NAME }} --name TABLEAU-PASSWORD --query value -o tsv)
+          echo "TABLEAU_USERNAME=$TABLEAU_USERNAME" >> $GITHUB_ENV
+          echo "TABLEAU_PASSWORD=$TABLEAU_PASSWORD" >> $GITHUB_ENV
+      
+      - name: Query GitHub Organization Members
+        run: |
+          python -c "
+          import requests
+          import pandas as pd
+          import os
+          import json
+          from datetime import datetime
+          
+          # GitHub API configuration
+          github_token = os.environ.get('GITHUB_TOKEN')
+          github_org = os.environ.get('GITHUB_ORG')
+          
+          # Set up headers for GitHub API requests
+          headers = {
+              'Authorization': f'token {github_token}',
+              'Accept': 'application/vnd.github.v3+json'
+          }
+          
+          # Get all members of the organization
+          members_url = f'https://api.github.com/orgs/{github_org}/members'
+          members_response = requests.get(members_url, headers=headers)
+          members = members_response.json()
+          
+          # Initialize data list
+          data = []
+          
+          # For each member, get their details
+          for member in members:
+              username = member['login']
+              account_id = member['id']
+              
+              # Get user details including email
+              user_url = f'https://api.github.com/users/{username}'
+              user_response = requests.get(user_url, headers=headers)
+              user_data = user_response.json()
+              
+              email = user_data.get('email')
+              
+              # If email is not public, try to get from events
+              if not email:
+                  events_url = f'https://api.github.com/users/{username}/events/public'
+                  events_response = requests.get(events_url, headers=headers)
+                  events = events_response.json()
+                  
+                  for event in events:
+                      if event.get('type') == 'PushEvent' and event.get('payload', {}).get('commits'):
+                          for commit in event['payload']['commits']:
+                              if commit.get('author', {}).get('email'):
+                                  email = commit['author']['email']
+                                  break
+                      if email:
+                          break
+              
+              # Get last activity date
+              # First check for user's updated_at
+              last_activity = user_data.get('updated_at')
+              
+              # Also check recent events for possibly more recent activity
+              if events_response.status_code == 200 and events:
+                  most_recent_event = events[0]
+                  event_created_at = most_recent_event.get('created_at')
+                  if event_created_at and (not last_activity or event_created_at > last_activity):
+                      last_activity = event_created_at
+              
+              # Format the date
+              if last_activity:
+                  last_activity_date = datetime.strptime(last_activity, '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d')
+              else:
+                  last_activity_date = 'Unknown'
+              
+              # Add to data list
+              data.append({
+                  'account_id': account_id,
+                  'username': username,
+                  'email': email or 'Not available',
+                  'last_activity_date': last_activity_date
+              })
+          
+          # Create DataFrame and save to CSV
+          df = pd.DataFrame(data)
+          csv_filename = os.environ.get('CSV_FILENAME')
+          df.to_csv(csv_filename, index=False)
+          
+          print(f'Successfully generated report with {len(data)} members')
+          print(f'CSV file saved as {csv_filename}')
+          "
+      
+      - name: Upload CSV as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-members-report
+          path: ${{ env.CSV_FILENAME }}
+      
+      - name: Push to Tableau
+        run: |
+          python -c "
+          import tableauserverclient as TSC
+          import os
+          import pandas as pd
+          
+          # Tableau configuration
+          tableau_server = os.environ.get('TABLEAU_SERVER_URL')
+          tableau_site = os.environ.get('TABLEAU_SITE_ID')
+          tableau_username = os.environ.get('TABLEAU_USERNAME')
+          tableau_password = os.environ.get('TABLEAU_PASSWORD')
+          tableau_project = os.environ.get('TABLEAU_PROJECT_NAME')
+          datasource_name = os.environ.get('TABLEAU_DATASOURCE_NAME')
+          csv_filename = os.environ.get('CSV_FILENAME')
+          
+          # Read the CSV file
+          df = pd.read_csv(csv_filename)
+          
+          # Create a Tableau Server client
+          tableau_auth = TSC.TableauAuth(tableau_username, tableau_password, tableau_site)
+          server = TSC.Server(tableau_server)
+          
+          # Sign in to Tableau Server
+          with server.auth.sign_in(tableau_auth):
+              # Get project ID
+              all_projects, pagination_item = server.projects.get()
+              project_id = None
+              
+              for project in all_projects:
+                  if project.name == tableau_project:
+                      project_id = project.id
+                      break
+              
+              if not project_id:
+                  print(f'Project {tableau_project} not found. Creating it...')
+                  new_project = TSC.ProjectItem(tableau_project)
+                  new_project = server.projects.create(new_project)
+                  project_id = new_project.id
+              
+              # Check if datasource already exists
+              all_datasources, pagination_item = server.datasources.get()
+              datasource_id = None
+              
+              for datasource in all_datasources:
+                  if datasource.name == datasource_name:
+                      datasource_id = datasource.id
+                      break
+              
+              # Create a temporary Hyper file
+              temp_hyper = f'{datasource_name}.hyper'
+              
+              # Convert DataFrame to Hyper file
+              df.to_csv(temp_hyper, index=False)
+              
+              # Create a new datasource or update existing one
+              if datasource_id:
+                  # Update existing datasource
+                  datasource = server.datasources.get_by_id(datasource_id)
+                  server.datasources.update(datasource, temp_hyper)
+                  print(f'Updated existing datasource: {datasource_name}')
+              else:
+                  # Create new datasource
+                  new_datasource = TSC.DatasourceItem(project_id)
+                  new_datasource.name = datasource_name
+                  
+                  # Publish the datasource
+                  new_datasource = server.datasources.publish(
+                      new_datasource,
+                      temp_hyper,
+                      'Overwrite'
+                  )
+                  print(f'Created new datasource: {datasource_name}')
+          
+          print('Successfully pushed data to Tableau')
+          "
