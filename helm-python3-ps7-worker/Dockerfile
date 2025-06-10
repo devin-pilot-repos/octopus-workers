@@ -52,8 +52,8 @@ RUN curl -LO https://github.com/Kong/deck/releases/download/${Deck_Version}/deck
     chmod +x /usr/local/bin/deck && \
     deck version
 
-# install argocd CLI
-RUN curl -LO https://github.com/argoproj/argo-cd/releases/download/${ArgoCD_Version}/argocd-linux-amd64 && \
+# install argocd CLI (latest release)
+RUN curl -LO https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 && \
     mv argocd-linux-amd64 /usr/local/bin/argocd && \
     chmod +x /usr/local/bin/argocd && \
     argocd version --client
@@ -84,4 +84,4 @@ RUN export PYENV_ROOT="$HOME/.pyenv" && \
     export PATH="$PYENV_ROOT/bin:$PATH" && \
     eval "$(pyenv init -)" && \
     pyenv install 3.12 && \
-    pyenv global 3.12        
+    pyenv global 3.12          
