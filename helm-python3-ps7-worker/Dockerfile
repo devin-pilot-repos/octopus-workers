@@ -10,6 +10,8 @@ FROM sample-artifactory.jfrog.io/dso-docker-virtual/dso-worker-base:${BASEIMAGE_
 ARG Kubectl_Version=v1.32.2
 ARG Helm_Version=v3.17.0
 ARG SOPS_VERSION=v3.9.3
+ARG Deck_Version=v1.46.0
+ARG ArgoCD_Version=v3.0.6
 
 USER root
 
@@ -43,10 +45,23 @@ RUN curl -LO https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/s
     chmod +x /usr/local/bin/sops && \
     sops -v
 
+# install deck CLI for Kong gateway management
+RUN curl -LO https://github.com/Kong/deck/releases/download/${Deck_Version}/deck_${Deck_Version#v}_linux_amd64.tar.gz && \
+    tar -xzf deck_${Deck_Version#v}_linux_amd64.tar.gz && \
+    mv deck /usr/local/bin/deck && \
+    chmod +x /usr/local/bin/deck && \
+    deck version
+
+# install argocd CLI (latest release)
+RUN curl -LO https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 && \
+    mv argocd-linux-amd64 /usr/local/bin/argocd && \
+    chmod +x /usr/local/bin/argocd && \
+    argocd version --client
+
 WORKDIR /
 
 # We know this won't reduce the image size at all. It's just to make the filesystem a little tidier.
-RUN rm -rf /tmp/*
+RUN rm -rf /tmp/* deck_*.tar.gz
 
 #Run Container as Octopus user
 USER Octopus
@@ -69,4 +84,4 @@ RUN export PYENV_ROOT="$HOME/.pyenv" && \
     export PATH="$PYENV_ROOT/bin:$PATH" && \
     eval "$(pyenv init -)" && \
     pyenv install 3.12 && \
-    pyenv global 3.12 
+    pyenv global 3.12          
